@@ -6,22 +6,13 @@ A reusable Terraform module for setting up an ECS Runner for the Humanitec Platf
 
 This module provides a reusable configuration for deploying an ECS-based runner that integrates with the Humanitec Platform Orchestrator. The module handles runner ID generation, AWS resource provisioning, and IAM role configuration.
 
-## Requirements
-
-| Name                  | Version  |
-| --------------------- | -------- |
-| terraform             | >= 1.8.0 |
-| aws                   | >= 4.0   |
-| random                | >= 3.0   |
-| platform-orchestrator | ~> 2.0   |
-
 ## Usage
 
 ### Basic Example
 
 ```hcl
 module "ecs_runner" {
-  source = "github.com/humanitec/platform-orchestrator-tf-modules//orchestrator-configuration/runner/serverless-ecs"
+  source = "github.com/humanitec-tf-modules/serverless-ecs-orchestrator-runner?ref=vX.Y.Z"
   
   region           = "us-east-1"
   subnet_ids       = ["subnet-12345678", "subnet-87654321"]
@@ -33,7 +24,7 @@ module "ecs_runner" {
 
 ```hcl
 module "ecs_runner" {
-  source = "github.com/humanitec/platform-orchestrator-tf-modules//orchestrator-configuration/runner/serverless-ecs"
+  source = "github.com/humanitec-tf-modules/serverless-ecs-orchestrator-runner?ref=vX.Y.Z"
   
   region           = "us-east-1"
   subnet_ids       = ["subnet-12345678", "subnet-87654321"]
@@ -46,7 +37,7 @@ module "ecs_runner" {
 
 ```hcl
 module "ecs_runner" {
-  source = "github.com/humanitec/platform-orchestrator-tf-modules//orchestrator-configuration/runner/serverless-ecs"
+  source = "github.com/humanitec-tf-modules/serverless-ecs-orchestrator-runner?ref=vX.Y.Z"
   
   region           = "us-east-1"
   subnet_ids       = ["subnet-12345678", "subnet-87654321"]
@@ -59,7 +50,7 @@ module "ecs_runner" {
 
 ```hcl
 module "ecs_runner" {
-  source = "github.com/humanitec/platform-orchestrator-tf-modules//orchestrator-configuration/runner/serverless-ecs"
+  source = "github.com/humanitec-tf-modules/serverless-ecs-orchestrator-runner?ref=vX.Y.Z"
   
   region                    = "us-east-1"
   subnet_ids                = ["subnet-12345678", "subnet-87654321"]
@@ -72,7 +63,7 @@ module "ecs_runner" {
 
 ```hcl
 module "ecs_runner" {
-  source = "github.com/humanitec/platform-orchestrator-tf-modules//orchestrator-configuration/runner/serverless-ecs"
+  source = "github.com/humanitec-tf-modules/serverless-ecs-orchestrator-runner?ref=vX.Y.Z"
   
   region           = "us-east-1"
   subnet_ids       = ["subnet-12345678", "subnet-87654321"]
@@ -90,7 +81,7 @@ module "ecs_runner" {
 
 ```hcl
 module "ecs_runner" {
-  source = "github.com/humanitec/platform-orchestrator-tf-modules//orchestrator-configuration/runner/serverless-ecs"
+  source = "github.com/humanitec-tf-modules/serverless-ecs-orchestrator-runner?ref=vX.Y.Z"
   
   region             = "us-east-1"
   subnet_ids         = ["subnet-12345678", "subnet-87654321"]
@@ -103,7 +94,7 @@ module "ecs_runner" {
 
 ```hcl
 module "ecs_runner" {
-  source = "github.com/humanitec/platform-orchestrator-tf-modules//orchestrator-configuration/runner/serverless-ecs"
+  source = "github.com/humanitec-tf-modules/serverless-ecs-orchestrator-runner?ref=vX.Y.Z"
   
   region                     = "us-east-1"
   subnet_ids                 = ["subnet-12345678", "subnet-87654321"]
@@ -116,7 +107,7 @@ module "ecs_runner" {
 
 ```hcl
 module "ecs_runner" {
-  source = "github.com/humanitec/platform-orchestrator-tf-modules//orchestrator-configuration/runner/serverless-ecs"
+  source = "github.com/humanitec-tf-modules/serverless-ecs-orchestrator-runner?ref=vX.Y.Z"
   
   region           = "us-east-1"
   subnet_ids       = ["subnet-12345678", "subnet-87654321"]
