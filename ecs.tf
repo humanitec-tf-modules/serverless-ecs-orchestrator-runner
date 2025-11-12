@@ -1,0 +1,83 @@
+# Create a new ECS cluster if one is not provided
+resource "aws_ecs_cluster" "main" {
+  count  = local.create_ecs_cluster ? 1 : 0
+  region = var.region
+  name   = "${local.runner_id}-cluster-${random_id.suffix.hex}"
+
+  setting {
+    name  = "containerInsights"
+    value = "enabled"
+  }
+
+  tags = local.common_tags
+}
+
+# Enable Fargate capacity provider for the cluster
+resource "aws_ecs_cluster_capacity_providers" "main" {
+  count        = local.create_ecs_cluster ? 1 : 0
+  cluster_name = aws_ecs_cluster.main[0].name
+  region       = var.region
+
+  capacity_providers = ["FARGATE", "FARGATE_SPOT"]
+
+  default_capacity_provider_strategy {
+    capacity_provider = "FARGATE"
+    weight            = 1
+    base              = 1
+  }
+}
+
+# IAM policy for ECS task management
+resource "aws_iam_role_policy" "ecs_task_manager" {
+  name = "${local.runner_id}-ecs-task-manager-policy"
+  role = aws_iam_role.ecs_task_manager.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "ecs:ListTaskDefinitions",
+          "ecs:DeregisterTaskDefinition"
+        ],
+        Resource = "*"
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "ecs:RegisterTaskDefinition",
+          "ecs:DeleteTaskDefinitions"
+        ],
+        Resource = [
+          "arn:aws:ecs:${local.ecs_cluster_arn_parts.region}:${local.ecs_cluster_arn_parts.account_id}:task-definition/humanitec_*",
+        ]
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "ecs:ListTasks",
+          "ecs:DescribeTasks",
+          "ecs:RunTask",
+          "ecs:TagResource",
+        ],
+        Resource = [
+          "arn:aws:ecs:${local.ecs_cluster_arn_parts.region}:${local.ecs_cluster_arn_parts.account_id}:task-definition/humanitec_*",
+          "arn:aws:ecs:${local.ecs_cluster_arn_parts.region}:${local.ecs_cluster_arn_parts.account_id}:cluster/${local.ecs_cluster_name}",
+          "arn:aws:ecs:${local.ecs_cluster_arn_parts.region}:${local.ecs_cluster_arn_parts.account_id}:task/${local.ecs_cluster_name}/*",
+          "arn:aws:ecs:${local.ecs_cluster_arn_parts.region}:${local.ecs_cluster_arn_parts.account_id}:container-instance/${local.ecs_cluster_name}/*"
+        ]
+      },
+      {
+        Effect   = "Allow",
+        Action   = "iam:PassRole",
+        Resource = "*",
+        Condition = {
+          StringLike = {
+            "iam:PassedToService" = "ecs-tasks.amazonaws.com"
+          }
+        }
+      },
+    ]
+  })
+}
