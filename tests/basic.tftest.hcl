@@ -1,10 +1,10 @@
-provider "aws" {
-  region                      = "us-east-1"
-  skip_credentials_validation = true
-  skip_requesting_account_id  = true
-  skip_metadata_api_check     = true
-  access_key                  = "mock_access_key"
-  secret_key                  = "mock_secret_key"
+mock_provider "aws" {
+
+  mock_data "aws_availability_zones" {
+    defaults = {
+      names = ["zone-1a", "zone-1b", "zone-1c"]
+    }
+  }
 }
 
 mock_provider "platform-orchestrator" {}
@@ -68,6 +68,24 @@ run "test_with_existing_cluster" {
   }
 
   # Note: runner_id contains random values only known at apply time when not explicitly provided
+}
+
+run "test_without_existing_ecs_cluster_or_vpc" {
+  command = plan
+
+  variables {
+    region           = "us-east-1"
+    humanitec_org_id = "test-org-def"
+  }
+
+  assert {
+    condition     = aws_ecs_cluster.main[0] != null
+    error_message = "An ECS cluster was created"
+  }
+  assert {
+    condition     = module.vpc[0] != null
+    error_message = "A VPC was created"
+  }
 }
 
 run "test_with_additional_tags" {

@@ -6,9 +6,11 @@ A reusable Terraform module for setting up an ECS Runner for the Humanitec Platf
 
 This module provides a reusable configuration for deploying an ECS-based runner that integrates with the Humanitec Platform Orchestrator. The module handles runner ID generation, AWS resource provisioning, and IAM role configuration.
 
+The ECS runner requires an ECS cluster and a subnet where to run tasks. You may bring these resources if you have existing ones, or have the module create them for convenience. See the examples below for each case.
+
 ## Usage
 
-### Basic Example
+### Basic example
 
 ```hcl
 module "ecs_runner" {
@@ -20,7 +22,7 @@ module "ecs_runner" {
 }
 ```
 
-### With Custom Runner ID
+### With custom runner ID
 
 ```hcl
 module "ecs_runner" {
@@ -33,7 +35,7 @@ module "ecs_runner" {
 }
 ```
 
-### With Custom Runner ID Prefix
+### With custom runner ID prefix
 
 ```hcl
 module "ecs_runner" {
@@ -46,7 +48,7 @@ module "ecs_runner" {
 }
 ```
 
-### With Existing ECS Cluster
+### With existing ECS cluster
 
 ```hcl
 module "ecs_runner" {
@@ -59,7 +61,18 @@ module "ecs_runner" {
 }
 ```
 
-### With Additional Tags
+### Without existing ECS cluster or VPC (let the module create both)
+
+```hcl
+module "ecs_runner" {
+  source = "github.com/humanitec-tf-modules/serverless-ecs-orchestrator-runner?ref=vX.Y.Z"
+  
+  region                    = "us-east-1"
+  humanitec_org_id          = "my-org-id"
+}
+```
+
+### With additional tags
 
 ```hcl
 module "ecs_runner" {
