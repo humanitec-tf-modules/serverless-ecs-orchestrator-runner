@@ -6,9 +6,11 @@ A reusable Terraform module for setting up an ECS Runner for the Humanitec Platf
 
 This module provides a reusable configuration for deploying an ECS-based runner that integrates with the Humanitec Platform Orchestrator. The module handles runner ID generation, AWS resource provisioning, and IAM role configuration.
 
+The ECS runner requires an ECS cluster and a subnet where to run tasks. You may bring these resources if you have existing ones, or have the module create them for convenience. See the examples below for each case.
+
 ## Usage
 
-### Basic Example
+### Basic example
 
 ```hcl
 module "ecs_runner" {
@@ -20,7 +22,7 @@ module "ecs_runner" {
 }
 ```
 
-### With Custom Runner ID
+### With custom runner ID
 
 ```hcl
 module "ecs_runner" {
@@ -33,7 +35,7 @@ module "ecs_runner" {
 }
 ```
 
-### With Custom Runner ID Prefix
+### With custom runner ID prefix
 
 ```hcl
 module "ecs_runner" {
@@ -46,7 +48,7 @@ module "ecs_runner" {
 }
 ```
 
-### With Existing ECS Cluster
+### With existing ECS cluster
 
 ```hcl
 module "ecs_runner" {
@@ -59,7 +61,18 @@ module "ecs_runner" {
 }
 ```
 
-### With Additional Tags
+### Without existing ECS cluster or VPC (let the module create both)
+
+```hcl
+module "ecs_runner" {
+  source = "github.com/humanitec-tf-modules/serverless-ecs-orchestrator-runner?ref=vX.Y.Z"
+  
+  region                    = "us-east-1"
+  humanitec_org_id          = "my-org-id"
+}
+```
+
+### With additional tags
 
 ```hcl
 module "ecs_runner" {
@@ -136,7 +149,9 @@ module "ecs_runner" {
 
 ## Modules
 
-No modules.
+| Name | Source | Version |
+|------|--------|---------|
+| <a name="module_vpc"></a> [vpc](#module\_vpc) | terraform-aws-modules/vpc/aws | n/a |
 
 ## Resources
 
@@ -156,6 +171,7 @@ No modules.
 | [platform-orchestrator_serverless_ecs_runner.runner](https://registry.terraform.io/providers/humanitec/platform-orchestrator/latest/docs/resources/serverless_ecs_runner) | resource |
 | [random_id.runner_id](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/id) | resource |
 | [random_id.suffix](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/id) | resource |
+| [aws_availability_zones.available](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/availability_zones) | data source |
 
 ## Inputs
 
@@ -173,7 +189,7 @@ No modules.
 | <a name="input_runner_id_prefix"></a> [runner\_id\_prefix](#input\_runner\_id\_prefix) | The prefix to use when generating a runner ID. Only used if runner\_id is not provided | `string` | `"runner"` | no |
 | <a name="input_secrets"></a> [secrets](#input\_secrets) | Secret environment variables to expose in the runner. Each value should be a secret or property ARN | `map(string)` | `{}` | no |
 | <a name="input_security_group_ids"></a> [security\_group\_ids](#input\_security\_group\_ids) | Optional list of security group IDs to attach to ECS tasks | `list(string)` | `[]` | no |
-| <a name="input_subnet_ids"></a> [subnet\_ids](#input\_subnet\_ids) | List of subnet IDs where ECS tasks will be launched. At least one subnet is required | `list(string)` | n/a | yes |
+| <a name="input_subnet_ids"></a> [subnet\_ids](#input\_subnet\_ids) | List of subnet IDs where ECS tasks will be launched. If not provided, a new VPC with private subnets for the tasks and a default security group for internet egress via a public subnet will be created | `list(string)` | `[]` | no |
 
 ## Outputs
 

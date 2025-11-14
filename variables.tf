@@ -28,13 +28,9 @@ variable "additional_tags" {
 }
 
 variable "subnet_ids" {
-  description = "List of subnet IDs where ECS tasks will be launched. At least one subnet is required"
+  description = "List of subnet IDs where ECS tasks will be launched. If not provided, a new VPC with private subnets for the tasks and a default security group for internet egress via a public subnet will be created"
   type        = list(string)
-
-  validation {
-    condition     = length(var.subnet_ids) > 0
-    error_message = "At least one subnet ID must be provided"
-  }
+  default     = []
 }
 
 variable "security_group_ids" {

@@ -16,6 +16,7 @@ resource "random_id" "suffix" {
 locals {
   runner_id             = var.runner_id != null ? var.runner_id : random_id.runner_id[0].hex
   create_ecs_cluster    = var.existing_ecs_cluster_name == null
+  create_vpc            = length(var.subnet_ids) == 0
   ecs_cluster_name      = var.existing_ecs_cluster_name != null ? var.existing_ecs_cluster_name : aws_ecs_cluster.main[0].name
   ecs_cluster_arn       = local.create_ecs_cluster ? aws_ecs_cluster.main[0].arn : "arn:aws:ecs:${var.region}:*:cluster/${var.existing_ecs_cluster_name}"
   ecs_cluster_arn_parts = provider::aws::arn_parse(local.ecs_cluster_arn)
