@@ -8,6 +8,8 @@ This module provides a reusable configuration for deploying an ECS-based runner 
 
 The ECS runner requires an ECS cluster and a subnet where to run tasks. You may bring these resources if you have existing ones, or have the module create them for convenience. See the examples below for each case.
 
+The module creates an S3 bucket and configures it for use as the TF state storage for the runner. The bucket name is exposed via the [outputs](#outputs).
+
 ## Usage
 
 ### Basic example
