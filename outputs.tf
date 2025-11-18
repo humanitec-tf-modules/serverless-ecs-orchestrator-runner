@@ -19,7 +19,7 @@ output "runner_id" {
 }
 
 output "s3_bucket" {
-  description = "The name of the S3 bucket"
+  description = "The name of the S3 bucket for TF state storage"
   value       = aws_s3_bucket.state.id
 }
 
