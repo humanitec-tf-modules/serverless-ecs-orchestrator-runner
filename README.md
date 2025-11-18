@@ -143,7 +143,7 @@ module "ecs_runner" {
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.20.0 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.21.0 |
 | <a name="provider_platform-orchestrator"></a> [platform-orchestrator](#provider\_platform-orchestrator) | 2.10.1 |
 | <a name="provider_random"></a> [random](#provider\_random) | 3.7.2 |
 
@@ -200,6 +200,6 @@ module "ecs_runner" {
 | <a name="output_execution_role_arn"></a> [execution\_role\_arn](#output\_execution\_role\_arn) | The ARN of the ECS task execution role |
 | <a name="output_humanitec_role_arn"></a> [humanitec\_role\_arn](#output\_humanitec\_role\_arn) | The ARN of the IAM role for Humanitec |
 | <a name="output_runner_id"></a> [runner\_id](#output\_runner\_id) | The ID of the runner |
-| <a name="output_s3_bucket"></a> [s3\_bucket](#output\_s3\_bucket) | The name of the S3 bucket |
+| <a name="output_s3_bucket"></a> [s3\_bucket](#output\_s3\_bucket) | The name of the S3 bucket for TF state storage |
 | <a name="output_task_role_arn"></a> [task\_role\_arn](#output\_task\_role\_arn) | The ARN of the ECS task role |
 <!-- END_TF_DOCS -->
