@@ -5,6 +5,16 @@ mock_provider "aws" {
       names = ["zone-1a", "zone-1b", "zone-1c"]
     }
   }
+  mock_resource "aws_iam_role" {
+    defaults = {
+      arn = "arn:aws:iam::123456789012:role/mock-role"
+    }
+  }
+  mock_resource "aws_ecs_cluster" {
+    defaults = {
+      arn = "arn:aws:eks:eu-north-1:123456789012:cluster/mock-cluster"
+    }
+  }
 }
 
 mock_provider "platform-orchestrator" {}
