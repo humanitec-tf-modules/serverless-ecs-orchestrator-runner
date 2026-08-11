@@ -16,8 +16,8 @@ resource "platform-orchestrator_serverless_ecs_runner" "runner" {
       security_groups      = local.create_vpc ? concat(var.security_group_ids, [module.vpc[0].default_security_group_id]) : var.security_group_ids
       is_public_ip_enabled = false
 
-      environment = merge(var.environment, { NATS_URL = var.nats_url })
-      secrets     = merge(var.secrets, { NATS_TOKEN = var.nats_token_secret_arn })
+      environment = var.environment
+      secrets     = var.secrets
     }
   }
 

@@ -24,9 +24,6 @@ locals {
   create_oidc_provider  = var.existing_oidc_provider_arn == null
   oidc_provider_arn     = var.existing_oidc_provider_arn != null ? var.existing_oidc_provider_arn : aws_iam_openid_connect_provider.oidc[0].arn
   oidc_hostname         = var.oidc_hostname
-  nats_token_secret_read_action = can(
-    regex("^arn:[^:]+:secretsmanager:", var.nats_token_secret_arn)
-  ) ? "secretsmanager:GetSecretValue" : "ssm:GetParameters"
   common_tags = merge(
     {
       ManagedBy = "terraform"

@@ -1,163 +1,43 @@
-# Reusable Platform Orchestrator ECS Runner
+# Serverless ECS Orchestrator Runner
 
-A reusable Terraform module for setting up an ECS Runner for the Platform Orchestrator.
+This Terraform module registers a `serverless-ecs` runner and creates the AWS
+roles, ECS cluster (optionally), networking (optionally), and S3 state storage
+it needs.
 
-## Overview
+Runner tasks use the Platform Orchestrator HTTPS runner gateway. The data plane
+injects the gateway URL and a deployment-scoped token when it creates each ECS
+task definition. This module does not configure NATS, broker credentials, or
+broker-secret IAM permissions.
 
-This module provides a reusable configuration for deploying an ECS-based runner that integrates with the Platform Orchestrator. The module handles runner ID generation, AWS resource provisioning, and IAM role configuration.
+## Prerequisites
 
-The ECS runner requires an ECS cluster and a subnet where to run tasks. You may bring these resources if you have existing ones, or have the module create them for convenience. See the examples below for each case.
-
-The module creates an S3 bucket and configures it for use as the TF state storage for the runner. The bucket name is exposed via the [outputs](#outputs).
-
-Set `oidc_hostname` to the hostname of the built-in OIDC issuer exposed by your Platform Orchestrator installation. The issuer must use publicly trusted TLS and be reachable by AWS.
-
-Runner tasks also require a TLS-protected NATS endpoint that is reachable from
-their ECS subnets. Store the runner token in AWS Secrets Manager or SSM and pass
-its ARN as `nats_token_secret_arn`; the secret value is injected as
-`NATS_TOKEN`, not placed in Terraform state by this module. The module grants
-the ECS task execution role permission to read only that ARN. When the secret
-uses a customer-managed KMS key, also set `nats_token_kms_key_arn` to the exact
-key ARN; leave it unset for an AWS-managed key.
+- AWS credentials allowed to create the resources selected by this module
+- A Platform Orchestrator organization
+- A publicly trusted per-installation OIDC issuer reachable by AWS
+- Outbound HTTPS from the selected ECS subnets to the runner gateway and any
+  provider APIs used by deployments
 
 ## Usage
 
-### Basic example
-
 ```hcl
-module "ecs_runner" {
-  source = "github.com/stellwerk-tf-modules/serverless-ecs-orchestrator-runner?ref=vX.Y.Z"
-  region                    = "us-east-1"
-  subnet_ids                = ["subnet-12345678", "subnet-87654321"]
-  orchestrator_org_id       = "my-org-id"
-  oidc_hostname             = "oidc.orchestrator.example.com"
-  nats_url                  = "tls://nats.orchestrator.example.com:4222"
-  nats_token_secret_arn     = "arn:aws:secretsmanager:eu-central-1:123456789012:secret:runner-nats-token-AbCdEf"
-  nats_token_kms_key_arn    = "arn:aws:kms:eu-central-1:123456789012:key/12345678-1234-1234-1234-123456789012"
-}
-```
+module "runner" {
+  source = "github.com/stellwerk-tf-modules/serverless-ecs-orchestrator-runner?ref=v4.0.0"
 
-### With custom runner ID
-
-```hcl
-module "ecs_runner" {
-  source = "github.com/stellwerk-tf-modules/serverless-ecs-orchestrator-runner?ref=vX.Y.Z"
-  region              = "us-east-1"
-  subnet_ids          = ["subnet-12345678", "subnet-87654321"]
-  orchestrator_org_id = "my-org-id"
-  runner_id           = "my-custom-runner"
-  oidc_hostname       = "oidc.orchestrator.example.com"
-  nats_url             = "tls://nats.orchestrator.example.com:4222"
-  nats_token_secret_arn = "arn:aws:secretsmanager:eu-central-1:123456789012:secret:runner-nats-token-AbCdEf"
-}
-```
-
-### With custom runner ID prefix
-
-```hcl
-module "ecs_runner" {
-  source = "github.com/stellwerk-tf-modules/serverless-ecs-orchestrator-runner?ref=vX.Y.Z"
-  region              = "us-east-1"
-  subnet_ids          = ["subnet-12345678", "subnet-87654321"]
-  orchestrator_org_id = "my-org-id"
-  runner_id_prefix    = "prod-runner"
-  oidc_hostname       = "oidc.orchestrator.example.com"
-  nats_url             = "tls://nats.orchestrator.example.com:4222"
-  nats_token_secret_arn = "arn:aws:secretsmanager:eu-central-1:123456789012:secret:runner-nats-token-AbCdEf"
-}
-```
-
-### With existing ECS cluster
-
-```hcl
-module "ecs_runner" {
-  source = "github.com/stellwerk-tf-modules/serverless-ecs-orchestrator-runner?ref=vX.Y.Z"
-  region                    = "us-east-1"
-  subnet_ids                = ["subnet-12345678", "subnet-87654321"]
-  orchestrator_org_id       = "my-org-id"
-  existing_ecs_cluster_name = "existing-cluster"
-  oidc_hostname             = "oidc.orchestrator.example.com"
-  nats_url             = "tls://nats.orchestrator.example.com:4222"
-  nats_token_secret_arn = "arn:aws:secretsmanager:eu-central-1:123456789012:secret:runner-nats-token-AbCdEf"
-}
-```
-
-### Without existing ECS cluster or VPC (let the module create both)
-
-```hcl
-module "ecs_runner" {
-  source = "github.com/stellwerk-tf-modules/serverless-ecs-orchestrator-runner?ref=vX.Y.Z"
-  region              = "us-east-1"
-  orchestrator_org_id = "my-org-id"
-  oidc_hostname       = "oidc.orchestrator.example.com"
-  nats_url             = "tls://nats.orchestrator.example.com:4222"
-  nats_token_secret_arn = "arn:aws:secretsmanager:eu-central-1:123456789012:secret:runner-nats-token-AbCdEf"
-}
-```
-
-### With additional tags
-
-```hcl
-module "ecs_runner" {
-  source = "github.com/stellwerk-tf-modules/serverless-ecs-orchestrator-runner?ref=vX.Y.Z"
-  region              = "us-east-1"
-  subnet_ids          = ["subnet-12345678", "subnet-87654321"]
-  orchestrator_org_id = "my-org-id"
+  region              = "eu-central-1"
+  orchestrator_org_id = "my-org"
   oidc_hostname       = "oidc.orchestrator.example.com"
 
-  nats_url             = "tls://nats.orchestrator.example.com:4222"
-  nats_token_secret_arn = "arn:aws:secretsmanager:eu-central-1:123456789012:secret:runner-nats-token-AbCdEf"
-  additional_tags = {
-    Environment = "production"
-    Team        = "platform"
-    CostCenter  = "engineering"
-  }
+  # Omit these to let the module create a VPC and ECS cluster.
+  existing_ecs_cluster_name = "my-runner-cluster"
+  subnet_ids               = ["subnet-0123456789abcdef0"]
+  security_group_ids       = ["sg-0123456789abcdef0"]
 }
 ```
 
-### With Subnets and Security Groups
-
-```hcl
-module "ecs_runner" {
-  source = "github.com/stellwerk-tf-modules/serverless-ecs-orchestrator-runner?ref=vX.Y.Z"
-  region              = "us-east-1"
-  subnet_ids          = ["subnet-12345678", "subnet-87654321"]
-  orchestrator_org_id = "my-org-id"
-  security_group_ids  = ["sg-12345678"]
-  oidc_hostname       = "oidc.orchestrator.example.com"
-  nats_url             = "tls://nats.orchestrator.example.com:4222"
-  nats_token_secret_arn = "arn:aws:secretsmanager:eu-central-1:123456789012:secret:runner-nats-token-AbCdEf"
-}
-```
-
-### With Existing OIDC Provider
-
-```hcl
-module "ecs_runner" {
-  source = "github.com/stellwerk-tf-modules/serverless-ecs-orchestrator-runner?ref=vX.Y.Z"
-  region                     = "us-east-1"
-  subnet_ids                 = ["subnet-12345678", "subnet-87654321"]
-  orchestrator_org_id        = "my-org-id"
-  oidc_hostname              = "oidc.orchestrator.example.com"
-  nats_url             = "tls://nats.orchestrator.example.com:4222"
-  nats_token_secret_arn = "arn:aws:secretsmanager:eu-central-1:123456789012:secret:runner-nats-token-AbCdEf"
-  existing_oidc_provider_arn = "arn:aws:iam::123456789012:oidc-provider/oidc.orchestrator.example.com"
-}
-```
-
-### With Custom OIDC Hostname
-
-```hcl
-module "ecs_runner" {
-  source = "github.com/stellwerk-tf-modules/serverless-ecs-orchestrator-runner?ref=vX.Y.Z"
-  region              = "us-east-1"
-  subnet_ids          = ["subnet-12345678", "subnet-87654321"]
-  orchestrator_org_id = "my-org-id"
-  oidc_hostname       = "custom-oidc.example.com"
-  nats_url             = "tls://nats.orchestrator.example.com:4222"
-  nats_token_secret_arn = "arn:aws:secretsmanager:eu-central-1:123456789012:secret:runner-nats-token-AbCdEf"
-}
-```
+The task execution role is used only for normal ECS image/log operations. Put
+deployment permissions on the task role or add them through your own policy
+management. Values passed through `secrets` still require corresponding
+execution-role access configured by the caller.
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
@@ -186,7 +66,6 @@ module "ecs_runner" {
 | [aws_iam_role.execution](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role.task](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role_policy.ecs_task_manager](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
-| [aws_iam_role_policy.execution_nats_token](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
 | [aws_iam_role_policy.task_s3](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
 | [aws_iam_role_policy_attachment.execution](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
 | [aws_s3_bucket.state](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket) | resource |
@@ -206,9 +85,6 @@ module "ecs_runner" {
 | <a name="input_existing_oidc_provider_arn"></a> [existing\_oidc\_provider\_arn](#input\_existing\_oidc\_provider\_arn) | The ARN of an existing OIDC provider to use. If not provided, a new OIDC provider will be created | `string` | `null` | no |
 | <a name="input_force_delete_s3"></a> [force\_delete\_s3](#input\_force\_delete\_s3) | Force delete the S3 state files bucket on destroy even if it's not empty | `bool` | `false` | no |
 | <a name="input_humanitec_org_id"></a> [humanitec\_org\_id](#input\_humanitec\_org\_id) | Deprecated alias for orchestrator\_org\_id | `string` | `null` | no |
-| <a name="input_nats_token_kms_key_arn"></a> [nats\_token\_kms\_key\_arn](#input\_nats\_token\_kms\_key\_arn) | Optional customer-managed KMS key ARN used to encrypt the NATS token secret | `string` | `null` | no |
-| <a name="input_nats_token_secret_arn"></a> [nats\_token\_secret\_arn](#input\_nats\_token\_secret\_arn) | Secrets Manager or SSM ARN containing the NATS token injected as NATS\_TOKEN | `string` | n/a | yes |
-| <a name="input_nats_url"></a> [nats\_url](#input\_nats\_url) | TLS NATS endpoint used by runner tasks for durable results and logs | `string` | n/a | yes |
 | <a name="input_oidc_hostname"></a> [oidc\_hostname](#input\_oidc\_hostname) | The hostname of the OIDC issuer exposed by your Platform Orchestrator installation | `string` | n/a | yes |
 | <a name="input_orchestrator_org_id"></a> [orchestrator\_org\_id](#input\_orchestrator\_org\_id) | The Platform Orchestrator organization ID for OIDC federation | `string` | `null` | no |
 | <a name="input_region"></a> [region](#input\_region) | The AWS region where resources will be created | `string` | n/a | yes |
