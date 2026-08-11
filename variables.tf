@@ -76,6 +76,36 @@ variable "secrets" {
   default     = {}
 }
 
+variable "nats_url" {
+  description = "TLS NATS endpoint used by runner tasks for durable results and logs"
+  type        = string
+}
+
+variable "nats_token_secret_arn" {
+  description = "Secrets Manager or SSM ARN containing the NATS token injected as NATS_TOKEN"
+  type        = string
+
+  validation {
+    condition = (
+      can(regex("^arn:[^:]+:secretsmanager:[^:]+:[0-9]{12}:secret:.+$", var.nats_token_secret_arn)) ||
+      can(regex("^arn:[^:]+:ssm:[^:]+:[0-9]{12}:parameter/.+$", var.nats_token_secret_arn))
+    )
+    error_message = "nats_token_secret_arn must be a Secrets Manager secret ARN or SSM parameter ARN."
+  }
+}
+
+variable "nats_token_kms_key_arn" {
+  description = "Optional customer-managed KMS key ARN used to encrypt the NATS token secret"
+  type        = string
+  default     = null
+  nullable    = true
+
+  validation {
+    condition     = var.nats_token_kms_key_arn == null || can(regex("^arn:[^:]+:kms:[^:]+:[0-9]{12}:key/.+$", var.nats_token_kms_key_arn))
+    error_message = "nats_token_kms_key_arn must be a customer-managed KMS key ARN."
+  }
+}
+
 variable "force_delete_s3" {
   description = "Force delete the S3 state files bucket on destroy even if it's not empty"
   type        = bool

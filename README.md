@@ -12,6 +12,14 @@ The module creates an S3 bucket and configures it for use as the TF state storag
 
 Set `oidc_hostname` to the hostname of the built-in OIDC issuer exposed by your Platform Orchestrator installation. The issuer must use publicly trusted TLS and be reachable by AWS.
 
+Runner tasks also require a TLS-protected NATS endpoint that is reachable from
+their ECS subnets. Store the runner token in AWS Secrets Manager or SSM and pass
+its ARN as `nats_token_secret_arn`; the secret value is injected as
+`NATS_TOKEN`, not placed in Terraform state by this module. The module grants
+the ECS task execution role permission to read only that ARN. When the secret
+uses a customer-managed KMS key, also set `nats_token_kms_key_arn` to the exact
+key ARN; leave it unset for an AWS-managed key.
+
 ## Usage
 
 ### Basic example
@@ -19,10 +27,13 @@ Set `oidc_hostname` to the hostname of the built-in OIDC issuer exposed by your 
 ```hcl
 module "ecs_runner" {
   source = "github.com/stellwerk-tf-modules/serverless-ecs-orchestrator-runner?ref=vX.Y.Z"
-  region              = "us-east-1"
-  subnet_ids          = ["subnet-12345678", "subnet-87654321"]
-  orchestrator_org_id = "my-org-id"
-  oidc_hostname       = "oidc.orchestrator.example.com"
+  region                    = "us-east-1"
+  subnet_ids                = ["subnet-12345678", "subnet-87654321"]
+  orchestrator_org_id       = "my-org-id"
+  oidc_hostname             = "oidc.orchestrator.example.com"
+  nats_url                  = "tls://nats.orchestrator.example.com:4222"
+  nats_token_secret_arn     = "arn:aws:secretsmanager:eu-central-1:123456789012:secret:runner-nats-token-AbCdEf"
+  nats_token_kms_key_arn    = "arn:aws:kms:eu-central-1:123456789012:key/12345678-1234-1234-1234-123456789012"
 }
 ```
 
@@ -36,6 +47,8 @@ module "ecs_runner" {
   orchestrator_org_id = "my-org-id"
   runner_id           = "my-custom-runner"
   oidc_hostname       = "oidc.orchestrator.example.com"
+  nats_url             = "tls://nats.orchestrator.example.com:4222"
+  nats_token_secret_arn = "arn:aws:secretsmanager:eu-central-1:123456789012:secret:runner-nats-token-AbCdEf"
 }
 ```
 
@@ -49,6 +62,8 @@ module "ecs_runner" {
   orchestrator_org_id = "my-org-id"
   runner_id_prefix    = "prod-runner"
   oidc_hostname       = "oidc.orchestrator.example.com"
+  nats_url             = "tls://nats.orchestrator.example.com:4222"
+  nats_token_secret_arn = "arn:aws:secretsmanager:eu-central-1:123456789012:secret:runner-nats-token-AbCdEf"
 }
 ```
 
@@ -62,6 +77,8 @@ module "ecs_runner" {
   orchestrator_org_id       = "my-org-id"
   existing_ecs_cluster_name = "existing-cluster"
   oidc_hostname             = "oidc.orchestrator.example.com"
+  nats_url             = "tls://nats.orchestrator.example.com:4222"
+  nats_token_secret_arn = "arn:aws:secretsmanager:eu-central-1:123456789012:secret:runner-nats-token-AbCdEf"
 }
 ```
 
@@ -73,6 +90,8 @@ module "ecs_runner" {
   region              = "us-east-1"
   orchestrator_org_id = "my-org-id"
   oidc_hostname       = "oidc.orchestrator.example.com"
+  nats_url             = "tls://nats.orchestrator.example.com:4222"
+  nats_token_secret_arn = "arn:aws:secretsmanager:eu-central-1:123456789012:secret:runner-nats-token-AbCdEf"
 }
 ```
 
@@ -86,6 +105,8 @@ module "ecs_runner" {
   orchestrator_org_id = "my-org-id"
   oidc_hostname       = "oidc.orchestrator.example.com"
 
+  nats_url             = "tls://nats.orchestrator.example.com:4222"
+  nats_token_secret_arn = "arn:aws:secretsmanager:eu-central-1:123456789012:secret:runner-nats-token-AbCdEf"
   additional_tags = {
     Environment = "production"
     Team        = "platform"
@@ -104,6 +125,8 @@ module "ecs_runner" {
   orchestrator_org_id = "my-org-id"
   security_group_ids  = ["sg-12345678"]
   oidc_hostname       = "oidc.orchestrator.example.com"
+  nats_url             = "tls://nats.orchestrator.example.com:4222"
+  nats_token_secret_arn = "arn:aws:secretsmanager:eu-central-1:123456789012:secret:runner-nats-token-AbCdEf"
 }
 ```
 
@@ -116,6 +139,8 @@ module "ecs_runner" {
   subnet_ids                 = ["subnet-12345678", "subnet-87654321"]
   orchestrator_org_id        = "my-org-id"
   oidc_hostname              = "oidc.orchestrator.example.com"
+  nats_url             = "tls://nats.orchestrator.example.com:4222"
+  nats_token_secret_arn = "arn:aws:secretsmanager:eu-central-1:123456789012:secret:runner-nats-token-AbCdEf"
   existing_oidc_provider_arn = "arn:aws:iam::123456789012:oidc-provider/oidc.orchestrator.example.com"
 }
 ```
@@ -129,6 +154,8 @@ module "ecs_runner" {
   subnet_ids          = ["subnet-12345678", "subnet-87654321"]
   orchestrator_org_id = "my-org-id"
   oidc_hostname       = "custom-oidc.example.com"
+  nats_url             = "tls://nats.orchestrator.example.com:4222"
+  nats_token_secret_arn = "arn:aws:secretsmanager:eu-central-1:123456789012:secret:runner-nats-token-AbCdEf"
 }
 ```
 
@@ -136,30 +163,22 @@ module "ecs_runner" {
 ## Requirements
 
 | Name | Version |
-| ---- | ------- |
+|------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.8.0 |
 | <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 4.0 |
 | <a name="requirement_platform-orchestrator"></a> [platform-orchestrator](#requirement\_platform-orchestrator) | ~> 1.0 |
 | <a name="requirement_random"></a> [random](#requirement\_random) | >= 3.0 |
 
-## Providers
-
-| Name | Version |
-| ---- | ------- |
-| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.54.0 |
-| <a name="provider_platform-orchestrator"></a> [platform-orchestrator](#provider\_platform-orchestrator) | 1.0.0 |
-| <a name="provider_random"></a> [random](#provider\_random) | 3.9.0 |
-
 ## Modules
 
 | Name | Source | Version |
-| ---- | ------ | ------- |
+|------|--------|---------|
 | <a name="module_vpc"></a> [vpc](#module\_vpc) | terraform-aws-modules/vpc/aws | n/a |
 
 ## Resources
 
 | Name | Type |
-| ---- | ---- |
+|------|------|
 | [aws_ecs_cluster.main](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_cluster) | resource |
 | [aws_ecs_cluster_capacity_providers.main](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_cluster_capacity_providers) | resource |
 | [aws_iam_openid_connect_provider.oidc](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_openid_connect_provider) | resource |
@@ -167,6 +186,7 @@ module "ecs_runner" {
 | [aws_iam_role.execution](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role.task](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role_policy.ecs_task_manager](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
+| [aws_iam_role_policy.execution_nats_token](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
 | [aws_iam_role_policy.task_s3](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
 | [aws_iam_role_policy_attachment.execution](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
 | [aws_s3_bucket.state](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket) | resource |
@@ -179,13 +199,16 @@ module "ecs_runner" {
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-| ---- | ----------- | ---- | ------- | :------: |
+|------|-------------|------|---------|:--------:|
 | <a name="input_additional_tags"></a> [additional\_tags](#input\_additional\_tags) | Additional tags to apply to resources created by this module | `map(string)` | `{}` | no |
 | <a name="input_environment"></a> [environment](#input\_environment) | Plain text environment variables to expose in the runner | `map(string)` | `{}` | no |
 | <a name="input_existing_ecs_cluster_name"></a> [existing\_ecs\_cluster\_name](#input\_existing\_ecs\_cluster\_name) | The name of an existing ECS cluster to use. If not provided, a new Fargate-compatible cluster will be created | `string` | `null` | no |
 | <a name="input_existing_oidc_provider_arn"></a> [existing\_oidc\_provider\_arn](#input\_existing\_oidc\_provider\_arn) | The ARN of an existing OIDC provider to use. If not provided, a new OIDC provider will be created | `string` | `null` | no |
 | <a name="input_force_delete_s3"></a> [force\_delete\_s3](#input\_force\_delete\_s3) | Force delete the S3 state files bucket on destroy even if it's not empty | `bool` | `false` | no |
 | <a name="input_humanitec_org_id"></a> [humanitec\_org\_id](#input\_humanitec\_org\_id) | Deprecated alias for orchestrator\_org\_id | `string` | `null` | no |
+| <a name="input_nats_token_kms_key_arn"></a> [nats\_token\_kms\_key\_arn](#input\_nats\_token\_kms\_key\_arn) | Optional customer-managed KMS key ARN used to encrypt the NATS token secret | `string` | `null` | no |
+| <a name="input_nats_token_secret_arn"></a> [nats\_token\_secret\_arn](#input\_nats\_token\_secret\_arn) | Secrets Manager or SSM ARN containing the NATS token injected as NATS\_TOKEN | `string` | n/a | yes |
+| <a name="input_nats_url"></a> [nats\_url](#input\_nats\_url) | TLS NATS endpoint used by runner tasks for durable results and logs | `string` | n/a | yes |
 | <a name="input_oidc_hostname"></a> [oidc\_hostname](#input\_oidc\_hostname) | The hostname of the OIDC issuer exposed by your Platform Orchestrator installation | `string` | n/a | yes |
 | <a name="input_orchestrator_org_id"></a> [orchestrator\_org\_id](#input\_orchestrator\_org\_id) | The Platform Orchestrator organization ID for OIDC federation | `string` | `null` | no |
 | <a name="input_region"></a> [region](#input\_region) | The AWS region where resources will be created | `string` | n/a | yes |
@@ -198,7 +221,7 @@ module "ecs_runner" {
 ## Outputs
 
 | Name | Description |
-| ---- | ----------- |
+|------|-------------|
 | <a name="output_ecs_cluster_arn"></a> [ecs\_cluster\_arn](#output\_ecs\_cluster\_arn) | The ARN of the ECS cluster |
 | <a name="output_ecs_cluster_name"></a> [ecs\_cluster\_name](#output\_ecs\_cluster\_name) | The name of the ECS cluster (either existing or newly created) |
 | <a name="output_execution_role_arn"></a> [execution\_role\_arn](#output\_execution\_role\_arn) | The ARN of the ECS task execution role |

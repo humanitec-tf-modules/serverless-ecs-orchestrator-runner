@@ -62,6 +62,32 @@ resource "aws_iam_role_policy_attachment" "execution" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
+# Allow the ECS agent to resolve only the configured NATS token secret.
+resource "aws_iam_role_policy" "execution_nats_token" {
+  name = "${local.runner_id}-nats-token"
+  role = aws_iam_role.execution.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = concat(
+      [
+        {
+          Effect   = "Allow"
+          Action   = local.nats_token_secret_read_action
+          Resource = var.nats_token_secret_arn
+        }
+      ],
+      var.nats_token_kms_key_arn == null ? [] : [
+        {
+          Effect   = "Allow"
+          Action   = "kms:Decrypt"
+          Resource = var.nats_token_kms_key_arn
+        }
+      ]
+    )
+  })
+}
+
 # IAM role for ECS tasks
 resource "aws_iam_role" "task" {
   name = "${local.runner_id}-task-${random_id.suffix.hex}"
