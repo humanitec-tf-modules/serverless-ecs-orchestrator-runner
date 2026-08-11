@@ -20,7 +20,9 @@ mock_provider "aws" {
 mock_provider "platform-orchestrator" {}
 
 variables {
-  oidc_hostname = "oidc.orchestrator.example.com"
+  oidc_hostname         = "oidc.orchestrator.example.com"
+  nats_url              = "tls://nats.example.test:4222"
+  nats_token_secret_arn = "arn:aws:secretsmanager:us-east-1:123456789012:secret:nats-token-AbCdEf"
 }
 
 run "test_with_explicit_runner_id" {
@@ -185,4 +187,78 @@ run "test_with_existing_oidc_and_custom_hostname" {
   }
 
   # This test validates that the plan succeeds when using an existing OIDC provider with custom hostname
+}
+
+run "test_with_nats_transport" {
+  command = plan
+
+  variables {
+    region                     = "us-east-1"
+    subnet_ids                 = ["subnet-nats"]
+    orchestrator_org_id        = "test-org-nats"
+    oidc_hostname              = "oidc.example.com"
+    existing_oidc_provider_arn = "arn:aws:iam::123456789012:oidc-provider/oidc.example.com"
+    nats_url                   = "tls://nats.example.com:4222"
+    nats_token_secret_arn      = "arn:aws:secretsmanager:us-east-1:123456789012:secret:nats-token-AbCdEf"
+    nats_token_kms_key_arn     = "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012"
+  }
+
+  assert {
+    condition     = platform-orchestrator_serverless_ecs_runner.runner.runner_configuration.job.environment.NATS_URL == "tls://nats.example.com:4222"
+    error_message = "NATS_URL must be passed to serverless runner tasks."
+  }
+
+  assert {
+    condition     = platform-orchestrator_serverless_ecs_runner.runner.runner_configuration.job.secrets.NATS_TOKEN == "arn:aws:secretsmanager:us-east-1:123456789012:secret:nats-token-AbCdEf"
+    error_message = "NATS_TOKEN must be sourced from the configured AWS secret."
+  }
+
+  assert {
+    condition     = jsondecode(aws_iam_role_policy.execution_nats_token.policy).Statement[0].Action == "secretsmanager:GetSecretValue"
+    error_message = "The execution role must be able to read the configured Secrets Manager secret."
+  }
+
+  assert {
+    condition     = jsondecode(aws_iam_role_policy.execution_nats_token.policy).Statement[0].Resource == "arn:aws:secretsmanager:us-east-1:123456789012:secret:nats-token-AbCdEf"
+    error_message = "Secrets Manager access must be scoped to the configured NATS token secret."
+  }
+
+  assert {
+    condition     = jsondecode(aws_iam_role_policy.execution_nats_token.policy).Statement[1].Action == "kms:Decrypt"
+    error_message = "The execution role must be able to decrypt a NATS token encrypted with a customer-managed KMS key."
+  }
+
+  assert {
+    condition     = jsondecode(aws_iam_role_policy.execution_nats_token.policy).Statement[1].Resource == "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012"
+    error_message = "KMS decrypt access must be scoped to the configured customer-managed key."
+  }
+}
+
+run "test_with_ssm_nats_token" {
+  command = plan
+
+  variables {
+    region                     = "us-east-1"
+    subnet_ids                 = ["subnet-nats-ssm"]
+    orchestrator_org_id        = "test-org-nats-ssm"
+    oidc_hostname              = "oidc.example.com"
+    existing_oidc_provider_arn = "arn:aws:iam::123456789012:oidc-provider/oidc.example.com"
+    nats_url                   = "tls://nats.example.com:4222"
+    nats_token_secret_arn      = "arn:aws:ssm:us-east-1:123456789012:parameter/runners/nats-token"
+  }
+
+  assert {
+    condition     = length(jsondecode(aws_iam_role_policy.execution_nats_token.policy).Statement) == 1
+    error_message = "The execution role must not receive KMS access when no customer-managed key is configured."
+  }
+
+  assert {
+    condition     = jsondecode(aws_iam_role_policy.execution_nats_token.policy).Statement[0].Action == "ssm:GetParameters"
+    error_message = "The execution role must be able to read the configured SSM parameter."
+  }
+
+  assert {
+    condition     = jsondecode(aws_iam_role_policy.execution_nats_token.policy).Statement[0].Resource == "arn:aws:ssm:us-east-1:123456789012:parameter/runners/nats-token"
+    error_message = "SSM access must be scoped to the configured NATS token parameter."
+  }
 }
